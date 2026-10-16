@@ -1,7 +1,15 @@
-# Placeholder for authentication utilities. Implement NextAuth or your preferred auth provider.
+import { PrismaClient } from '@prisma/client'
 
-export function getTenantIdFromSession(req: any) {
-  // In production, extract tenant id from the authenticated session.
-  // For local dev, use a fixed demo tenant id if present in env.
-  return process.env.DEV_TENANT_ID ?? null
+const globalForPrisma = globalThis as unknown as {
+  prisma?: PrismaClient
+}
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  })
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma
 }

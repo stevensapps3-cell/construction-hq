@@ -1,6 +1,28 @@
-import { PrismaClient } from '@prisma/client'
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 
-const globalForPrisma = global as unknown as { prisma?: PrismaClient }
+export async function GET() {
+  const documents = await prisma.document.findMany({ orderBy: { createdAt: 'desc' } })
+  return NextResponse.json(documents)
+}
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient()
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+export async function POST(req: Request) {
+  const formData = await req.formData()
+  const file = formData.get('file')
+
+  if (!(file instanceof File)) {
+    return NextResponse.json({ error: 'A valid file upload is required.' }, { status: 400 })
+  }
+
+  const document = await prisma.document.create({
+    data: {
+      tenantId: 'pending',
+      fileName: file.name,
+      filePath: `/uploads/${file.name}`,
+      mimeType: file.type || 'application/octet-stream',
+      size: file.size,
+    },
+  })
+
+  return NextResponse.json(document, { status: 201 })
+}
